@@ -2,7 +2,7 @@
 
 Fichenn is a standalone binary - written in Golang - for uploading and downloading secured files.
 
-It aims to be portable and have a straightforward stream implementation (no fancy customisation based on third libraries like cURL and OpenSSL).
+It aims to be portable and have a straightforward stream implementation (no fancy customisation based on third libraries like cURL and OpenSSL). The drawback is that you need to install this binary on both source and destination operating system.
 
 ## Usage
 
