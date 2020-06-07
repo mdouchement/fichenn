@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mdouchement/fichenn/inode"
-
 	"github.com/atotto/clipboard"
 	"github.com/k0kubun/go-ansi"
 	"github.com/knadh/koanf"
@@ -20,6 +18,7 @@ import (
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/mdouchement/fichenn/crypto"
+	"github.com/mdouchement/fichenn/inode"
 	"github.com/mdouchement/fichenn/storage"
 	"github.com/mdouchement/fichenn/stream"
 	"github.com/pkg/errors"
