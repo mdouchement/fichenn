@@ -1,0 +1,13 @@
+# Fichenn configuration file ~/.fichennrc
+# TOML syntax
+
+storage = "plik"
+# Copy command to the clipboard (cf. https://github.com/atotto/clipboard)
+clipboad = true
+
+[plik]
+url = "https://plik.root.gg"
+# Time before removing remote file (golang's time.Duration: 10ms, 10s, 10m, 10h, etc.).
+ttl = "24h"
+# Remove the remote file after the first download.
+one_shot = false

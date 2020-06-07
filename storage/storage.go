@@ -1,0 +1,26 @@
+package storage
+
+import (
+	"io"
+
+	"github.com/knadh/koanf"
+	"github.com/pkg/errors"
+)
+
+// A Storage is an interface used for uploading secured data.
+type Storage interface {
+	Upload(name string, r io.Reader) error
+	CommandArtefact() string
+}
+
+// NewFrom returns a new storage based on the given configuration.
+func NewFrom(konf *koanf.Koanf) (Storage, error) {
+	switch konf.String("storage") {
+	case "plik":
+		return &plik{
+			konf: konf,
+		}, nil
+	default:
+		return nil, errors.Errorf("unknown storage: %s", konf.String("storage"))
+	}
+}
