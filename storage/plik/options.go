@@ -33,6 +33,7 @@ type (
 		// Yubikey            string `json:"yubikey,omitempty"`
 
 		authorization string
+		useragent     string
 	}
 )
 
@@ -62,5 +63,12 @@ func BasicAuth(login, password string) Option {
 	return func(opts *Options) {
 		opts.Login = login
 		opts.Password = password
+	}
+}
+
+// UserAgent sets the User-Agent for each requests.
+func UserAgent(name string) Option {
+	return func(opts *Options) {
+		opts.useragent = name
 	}
 }

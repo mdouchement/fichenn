@@ -22,6 +22,7 @@ func (s *plik) Upload(name string, r io.Reader) error {
 	}
 
 	s.url, err = client.Upload(name, r,
+		plikpkg.UserAgent(UserAgent),
 		plikpkg.TTL(time.Duration(s.konf.Duration("plik.ttl"))),
 		plikpkg.OneShotFrom(s.konf.Bool("plik.one_shot")),
 	)

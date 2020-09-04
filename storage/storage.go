@@ -7,6 +7,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// UserAgent used in requests.
+const UserAgent = "fichenn/1.0"
+
 // A Storage is an interface used for uploading secured data.
 type Storage interface {
 	Upload(name string, r io.Reader) error

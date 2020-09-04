@@ -82,6 +82,9 @@ func (c *client) bucket(params *Options) (*Options, error) {
 		return nil, errors.Wrap(err, "could not build request")
 	}
 	req.Close = true
+	if params.useragent != "" {
+		req.Header.Add("User-Agent", params.useragent)
+	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
 
@@ -121,6 +124,9 @@ func (c *client) multipart(name string, r io.Reader, params *Options) (string, s
 		return "", "", errors.Wrap(err, "could not build request")
 	}
 	req.Close = true
+	if params.useragent != "" {
+		req.Header.Add("User-Agent", params.useragent)
+	}
 	req.Header.Add("Content-Type", contentType)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("X-UploadToken", params.UploadToken)
