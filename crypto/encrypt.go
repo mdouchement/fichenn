@@ -8,7 +8,7 @@ import (
 )
 
 // Encrypt takes the given destination and master key and return a encrypter writer.
-func Encrypt(dst io.WriteCloser, mk []byte) (io.WriteCloser, error) {
+func Encrypt(dst io.Writer, mk []byte) (io.WriteCloser, error) {
 	nonce, err := argon2.GenerateRandomBytes(StreamNonceSize)
 	if err != nil {
 		return nil, err

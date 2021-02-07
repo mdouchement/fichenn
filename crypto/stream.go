@@ -11,9 +11,9 @@ package crypto
 
 import (
 	"crypto/cipher"
+	"errors"
 	"io"
 
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/poly1305"
 )
@@ -76,7 +76,7 @@ func (r *Reader) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-// readChunk reads the next chunk of ciphertext from r.c and makes it available
+// readChunk reads the next chunk of ciphertext from r.src and makes it available
 // in r.unread. last is true if the chunk was marked as the end of the message.
 // readChunk must not be called again after returning a last chunk or an error.
 func (r *Reader) readChunk() (last bool, err error) {
@@ -108,7 +108,7 @@ func (r *Reader) readChunk() (last bool, err error) {
 		out, err = r.a.Open(outBuf, r.nonce[:], in, nil)
 	}
 	if err != nil {
-		return false, errors.Wrap(err, "failed to decrypt and authenticate payload chunk")
+		return false, errors.New("failed to decrypt and authenticate payload chunk")
 	}
 
 	incNonce(&r.nonce)
@@ -134,14 +134,14 @@ func setLastChunkFlag(nonce *[chacha20poly1305.NonceSize]byte) {
 
 type Writer struct {
 	a         cipher.AEAD
-	dst       io.WriteCloser
+	dst       io.Writer
 	unwritten []byte // backed by buf
 	buf       [encChunkSize]byte
 	nonce     [chacha20poly1305.NonceSize]byte
 	err       error
 }
 
-func NewWriter(key []byte, dst io.WriteCloser) (*Writer, error) {
+func NewWriter(key []byte, dst io.Writer) (*Writer, error) {
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
 		return nil, err
@@ -180,21 +180,19 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	return total, nil
 }
 
-// Close will flush the last chunk and call the underlying
-// WriteCloser's Close method.
+// Close flushes the last chunk. It does not close the underlying Writer.
 func (w *Writer) Close() error {
 	if w.err != nil {
 		return w.err
 	}
 
-	err := w.flushChunk(lastChunk)
-	if err != nil {
-		w.err = err
-		return err
+	w.err = w.flushChunk(lastChunk)
+	if w.err != nil {
+		return w.err
 	}
-	w.err = errors.New("stream.Writer is already closed")
 
-	return w.dst.Close()
+	w.err = errors.New("stream.Writer is already closed")
+	return nil
 }
 
 const (
