@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -40,7 +41,7 @@ func main() {
 	ctrl.Command = &cobra.Command{
 		Use:     "finn",
 		Short:   "Fichenn secured uploads",
-		Version: fmt.Sprintf("%s - build %.7s @ %s", version, revision, date),
+		Version: fmt.Sprintf("%s - build %.7s @ %s - %s", version, revision, date, runtime.Version()),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(c *cobra.Command, args []string) (err error) {
 			if ctrl.passphrase != "" {

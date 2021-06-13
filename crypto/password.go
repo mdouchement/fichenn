@@ -27,13 +27,7 @@ func NewPassword(length int) string {
 		if err != nil {
 			panic(err) // should never occured because max >= 0
 		}
-
-		if n.Int64() == 0 {
-			pass[i] = chars[0]
-			continue
-		}
-		pass[i] = chars[len(chars)%int(n.Int64())]
+		pass[i] = chars[int(n.Int64())]
 	}
-
 	return string(pass)
 }
