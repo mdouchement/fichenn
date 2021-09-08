@@ -1,7 +1,7 @@
 # https://taskfile.dev
 # https://github.com/mdouchement/checksum
 
-version: '2'
+version: '3'
 
 vars:
   VERSION: 0.2.0
