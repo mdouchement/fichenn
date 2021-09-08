@@ -3,8 +3,8 @@ package stream
 import (
 	"io"
 
+	"filippo.io/age"
 	"github.com/klauspost/compress/zstd"
-	"github.com/mdouchement/fichenn/crypto"
 )
 
 type stream struct {
@@ -15,7 +15,12 @@ type stream struct {
 
 // NewReader returns an io.Reader that uses ZStandard compression and the STREAM chunked encryption scheme
 func NewReader(password string, r io.ReadCloser) (io.ReadCloser, error) {
-	rE, err := crypto.Decrypt(r, []byte(password))
+	identity, err := age.NewScryptIdentity(password)
+	if err != nil {
+		return nil, err
+	}
+
+	rE, err := age.Decrypt(r, identity)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +41,12 @@ func NewReader(password string, r io.ReadCloser) (io.ReadCloser, error) {
 
 // NewWriter returns an io.WriteCloser that uses ZStandard compression and the STREAM chunked encryption scheme
 func NewWriter(password string, w io.WriteCloser) (io.WriteCloser, error) {
-	wE, err := crypto.Encrypt(w, []byte(password))
+	recipient, err := age.NewScryptRecipient(password)
+	if err != nil {
+		return nil, err
+	}
+
+	wE, err := age.Encrypt(w, recipient)
 	if err != nil {
 		return nil, err
 	}

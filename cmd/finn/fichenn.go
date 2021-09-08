@@ -53,7 +53,7 @@ func main() {
 	}
 	ctrl.Command.Flags().StringVarP(&ctrl.passphrase, "pass", "p", "", "passphrase used to decrypt")
 	ctrl.Command.Flags().StringVarP(&ctrl.output, "output", "o", "", "write output to given destination")
-	ctrl.Command.Flags().BoolVarP(&ctrl.chmodX, "chmod+x", "c", false, "chmod +x <output>")
+	ctrl.Command.Flags().BoolVarP(&ctrl.chmodX, "chmod+x", "c", false, "perform `chmod +x' on downloaded file")
 	ctrl.Command.Flags().BoolVarP(&ctrl.extract, "extract", "x", false, "Tarball extract")
 
 	if err := ctrl.Command.Execute(); err != nil {
