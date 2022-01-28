@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/user"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -125,31 +125,9 @@ func (c *controller) download(url string) error {
 
 func (c *controller) upload(src string) error {
 	// Configuration
-	konf := koanf.New(".")
-
-	defaults := map[string]interface{}{
-		"passphrase_length": 24,
-		"storage":           "plik",
-		"clipboard":         true,
-		"plik": map[string]interface{}{
-			"url":      "https://plik.root.gg",
-			"ttl":      "24h",
-			"one_shot": false,
-		},
-	}
-	if err := konf.Load(confmap.Provider(defaults, ""), nil); err != nil {
-		panic(err) // We need to parse defaults
-	}
-
-	// Load user configuration
-	usr, err := user.Current()
+	konf, err := c.config()
 	if err != nil {
-		return errors.Wrap(err, "could not get shell user")
-	}
-	cfg := filepath.Join(usr.HomeDir, runcom)
-
-	if err := konf.Load(file.Provider(cfg), toml.Parser()); err != nil {
-		fmt.Println(err, "=> using defaults")
+		return errors.Wrap(err, "config")
 	}
 
 	//
@@ -206,6 +184,61 @@ func (c *controller) upload(src string) error {
 		fmt.Println("Copied to the clipboard")
 	}
 	return nil
+}
+
+func (c *controller) config() (*koanf.Koanf, error) {
+	// Configuration
+	konf := koanf.New(".")
+
+	defaults := map[string]interface{}{
+		"passphrase_length": 24,
+		"storage":           "plik",
+		"clipboard":         true,
+		"plik": map[string]interface{}{
+			"url":      "https://plik.root.gg",
+			"ttl":      "24h",
+			"one_shot": false,
+		},
+	}
+	if err := konf.Load(confmap.Provider(defaults, ""), nil); err != nil {
+		panic(err) // We need to parse defaults
+	}
+
+	// Load user configuration
+	cfg, err := lookup()
+	if err != nil {
+		return nil, errors.Wrap(err, "lookup")
+	}
+	fmt.Println("Use:", cfg)
+
+	if err := konf.Load(file.Provider(cfg), toml.Parser()); err != nil {
+		return nil, errors.Wrap(err, "parsing")
+	}
+
+	return konf, nil
+}
+
+func lookup() (string, error) {
+	workdir, err := os.Getwd()
+	if err != nil {
+		return "", errors.Wrap(err, "current directory:")
+	}
+
+	for workdir != "/" || runtime.GOOS == "windows" && strings.HasSuffix(workdir, ":\\") {
+		filename := filepath.Join(workdir, runcom)
+		_, err := os.Stat(filename)
+		if err == nil {
+			return filename, nil
+		}
+		if os.IsNotExist(err) {
+			workdir = filepath.Dir(workdir)
+			continue
+		}
+
+		return "", err
+	}
+
+	return "", errors.Errorf("no %s found", runcom)
 }
 
 func progress(size int64, caption string) *progressbar.ProgressBar {
