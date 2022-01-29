@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -223,20 +224,29 @@ func lookup() (string, error) {
 		return "", errors.Wrap(err, "current directory:")
 	}
 
-	var previous string
-	for workdir != previous {
-		filename := filepath.Join(workdir, runcom)
-		_, err := os.Stat(filename)
-		if err == nil {
-			return filename, nil
-		}
-		if os.IsNotExist(err) {
-			previous = workdir
-			workdir = filepath.Dir(workdir)
-			continue
-		}
+	usr, err := user.Current()
+	if err != nil {
+		return "", errors.Wrap(err, "could not get shell user")
+	}
 
-		return "", err
+	for _, workdir := range []string{workdir, usr.HomeDir} {
+		var previous string
+
+		for workdir != previous {
+			filename := filepath.Join(workdir, runcom)
+
+			_, err := os.Stat(filename)
+			if err == nil {
+				return filename, nil
+			}
+			if os.IsNotExist(err) {
+				previous = workdir
+				workdir = filepath.Dir(workdir)
+				continue
+			}
+
+			return "", err
+		}
 	}
 
 	return "", errors.Errorf("no %s found", runcom)
