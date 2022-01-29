@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -224,13 +223,15 @@ func lookup() (string, error) {
 		return "", errors.Wrap(err, "current directory:")
 	}
 
-	for workdir != "/" || runtime.GOOS == "windows" && strings.HasSuffix(workdir, ":\\") {
+	var previous string
+	for workdir != previous {
 		filename := filepath.Join(workdir, runcom)
 		_, err := os.Stat(filename)
 		if err == nil {
 			return filename, nil
 		}
 		if os.IsNotExist(err) {
+			previous = workdir
 			workdir = filepath.Dir(workdir)
 			continue
 		}
