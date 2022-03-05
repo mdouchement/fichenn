@@ -22,9 +22,9 @@ import (
 	"github.com/mdouchement/fichenn/inode"
 	"github.com/mdouchement/fichenn/storage"
 	"github.com/mdouchement/fichenn/stream"
+	"github.com/muesli/coral"
 	"github.com/pkg/errors"
 	"github.com/schollz/progressbar/v3"
-	"github.com/spf13/cobra"
 )
 
 const runcom = ".fichennrc"
@@ -38,12 +38,12 @@ var (
 func main() {
 	ctrl := new(controller)
 
-	ctrl.Command = &cobra.Command{
+	ctrl.Command = &coral.Command{
 		Use:     "finn",
 		Short:   "Fichenn secured uploads",
 		Version: fmt.Sprintf("%s - build %.7s @ %s - %s", version, revision, date, runtime.Version()),
-		Args:    cobra.ExactArgs(1),
-		RunE: func(c *cobra.Command, args []string) (err error) {
+		Args:    coral.ExactArgs(1),
+		RunE: func(c *coral.Command, args []string) (err error) {
 			if ctrl.passphrase != "" {
 				return ctrl.download(args[0])
 			}
@@ -62,7 +62,7 @@ func main() {
 }
 
 type controller struct {
-	*cobra.Command
+	*coral.Command
 	passphrase string
 	output     string
 	chmodX     bool

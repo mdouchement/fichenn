@@ -4,29 +4,28 @@
 version: '3'
 
 vars:
-  VERSION: 0.3.2
+  VERSION: 0.3.3
   REVISION: { sh: git rev-parse HEAD }
+  WORKDIR: { sh: pwd }
 
 env:
-  GO111MODULE: on
   CGO_ENABLED: 0
 
 tasks:
   clean:
     desc: Clean project
     cmds:
-      - rm -rf ./dist
+      - rm -rf {{.WORKDIR}}/dist
 
   build-all:
     desc: Build all binaries
     cmds:
       - task: clean
-      - mkdir -p ./dist
+      - mkdir -p {{.WORKDIR}}/dist
 
       - task: build
         vars:
           BINARY_NAME: finn-linux-amd64
-          ENTRYPOINT: cmd/finn/*.go
           TARGET_DIST: GOOS=linux GOARCH=amd64
 
       - task: checksum
@@ -36,7 +35,6 @@ tasks:
       - task: build
         vars:
           BINARY_NAME: finn-linux-arm64
-          ENTRYPOINT: cmd/finn/*.go
           TARGET_DIST: GOOS=linux GOARCH=arm64
 
       - task: checksum
@@ -46,7 +44,6 @@ tasks:
       - task: build
         vars:
           BINARY_NAME: finn-darwin-amd64
-          ENTRYPOINT: cmd/finn/*.go
           TARGET_DIST: GOOS=darwin GOARCH=amd64
 
       - task: checksum
@@ -56,7 +53,6 @@ tasks:
       - task: build
         vars:
           BINARY_NAME: finn-windows-amd64.exe
-          ENTRYPOINT: cmd/finn/*.go
           TARGET_DIST: GOOS=windows GOARCH=amd64
 
       - task: checksum
@@ -64,8 +60,9 @@ tasks:
           BINARY_NAME: finn-windows-amd64.exe
 
   build:
+    dir: "{{.WORKDIR}}/cmd/finn"
     cmds:
-      - '{{.TARGET_DIST}} go build -ldflags "{{.LDFLAGS | splitList "\n" | join " "}}" -o ./dist/{{.BINARY_NAME}} {{.ENTRYPOINT}}'
+      - '{{.TARGET_DIST}} go build -ldflags "{{.LDFLAGS | splitList "\n" | join " "}}" -o {{.WORKDIR}}/dist/{{.BINARY_NAME}} .'
     vars:
       LDFLAGS: |
         -s
@@ -75,5 +72,6 @@ tasks:
         -X main.date={{now | date "2006-01-02~15:04:05"}}
 
   checksum:
+    dir: "{{.WORKDIR}}/dist"
     cmds:
-      - cd dist && checksum --algs="sha256" --append-to checksum.txt {{.BINARY_NAME}}
+      - checksum --algs="sha256" --append-to checksum.txt {{.BINARY_NAME}}
