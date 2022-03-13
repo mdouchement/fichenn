@@ -18,6 +18,7 @@ import (
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/mdouchement/fichenn/artifact"
 	"github.com/mdouchement/fichenn/crypto"
 	"github.com/mdouchement/fichenn/inode"
 	"github.com/mdouchement/fichenn/storage"
@@ -138,8 +139,9 @@ func (c *controller) upload(src string) error {
 		return errors.Wrap(err, "loading storage")
 	}
 
-	c.passphrase = crypto.NewPassword(konf.Int("passphrase_length"))
-	fmt.Printf("Passphrase: %s\n\n", c.passphrase)
+	var artifact artifact.Artifact
+	artifact.Password = crypto.NewPassword(konf.Int("passphrase_length"))
+	fmt.Printf("Passphrase: %s\n\n", artifact.Password)
 
 	f, err := inode.NewReader(src)
 	if err != nil {
@@ -156,9 +158,10 @@ func (c *controller) upload(src string) error {
 	go func() {
 		defer pW.Close()
 
-		w, err := stream.NewWriter(c.passphrase, pW)
+		w, err := stream.NewWriter(artifact.Password, pW)
 		if err != nil {
 			pW.CloseWithError(err)
+			return
 		}
 		defer w.Close()
 
@@ -168,15 +171,14 @@ func (c *controller) upload(src string) error {
 		}
 	}()
 
-	err = storage.Upload(filepath.Base(f.Name()), pR)
+	artifact.Extractable = f.IsTarball()
+	artifact.Filename = filepath.Base(f.Name())
+	err = storage.Upload(&artifact, pR)
 	if err != nil {
 		return errors.Wrap(err, "could not upload")
 	}
 
-	command := fmt.Sprintf("%s --pass \"%s\" %s", c.Command.Use, c.passphrase, storage.CommandArtefact())
-	if f.IsTarball() {
-		command += " --extract"
-	}
+	command := artifact.CLI()
 	fmt.Println("\nCommand:\n", command)
 
 	if konf.Bool("clipboard") {

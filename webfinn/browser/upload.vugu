@@ -1,0 +1,263 @@
+<div>
+    <main role="upload" class="upload">
+        <h3 class="title is-3">Upload</h3>
+        <div class="section">
+            <div class="tile is-ancestor">
+                <div class="tile is-vertical is-8">
+                    <div class="tile is-parent">
+                        <div class="tile is-child notification">
+                            <div class="file">
+                                <label class="file-label">
+                                    <input type="file" class="file-input" id="file-to-upload" name="filename" @change="c.FileChange()">
+                                    <span class="file-cta">
+                                        <span class="file-icon">
+                                            <i class="fas fa-upload"></i>
+                                        </span>
+                                        <span class="file-label">
+                                            Choose a file…
+                                        </span>
+                                    </span>
+                                    <span class="file-name" vg-content="c.Filename" vg-if="c.CanUpload"></span>
+                                    <button class="button is-info" @click="c.Upload(event)" vg-if="c.CanUpload">Upload</button>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tile is-parent">
+                        <div class="tile is-child notification">
+                            <div class="field">
+                                <label class="label">Password</label>
+                                <span id="password" class="tag is-light"></span>
+                            </div>
+                            <div class="field">
+                                <label class="label is-medium">Link</label>
+                                <textarea readonly id="link" class="textarea"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tile is-parent">
+                    <form class="tile is-child notification">
+                        <div class="field">
+                            <label class="label">Domain</label>
+                            <div class="control">
+                                <input type="text" class="input" @change="c.HandleChange(event)" name="domain" :value="c.Domain"></input>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Time to live
+                                <span class="icon has-tooltip-arrow has-tooltipl-multiline" data-tooltip='Valid time units are "s", "m", "h", "d"&#10;e.g. "300s", "5d" or "2h45m"'>
+                                    <i class="fa-solid fa-circle-question"></i>
+                                </span>
+                            </label>
+                            <div class="control">
+                                <input type="text" class="input" @change="c.HandleChange(event)" name="ttl" :value="c.TTL"></input>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Passphrase length</label>
+                            <div class="control">
+                                <input type="text" class="input" @change="c.HandleChange(event)" name="passphrase_length" :value="c.PassphraseLength"></input>
+                            </div>
+                            <div>You selected: <span vg-html="c.PassphraseLength"></span></div>
+                        </div>
+                        <div class="field">
+                            <label class="checkbox">
+                                <input id="one-shot" type="checkbox" @change="c.HandleChange(event)" name="one_shot" :value="c.OneShot"></input>
+                                One Shot
+                            </label>
+                        </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                <button class="button is-info" @click="c.HandleChange(event)">Update URL</button>
+                            </div>
+                        </div>
+                        <!--<div class="field">
+                            <div class="buttons is-centered">
+                                <a :href="c.Link" rel="stylesheet" vg-content="c.Link"></a>
+                            </div>
+                        </div>-->
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script type="application/x-go">
+
+import (
+    "fmt"
+    "net/http"
+    "net/url"
+    "strconv"
+    "strings"
+    sjs "syscall/js"
+    "time"
+
+    "github.com/knadh/koanf"
+	"github.com/knadh/koanf/providers/confmap"
+    "github.com/mdouchement/fichenn/artifact"
+    "github.com/vugu/vgrouter"
+    "github.com/vugu/vugu/vgform"
+)
+
+type Upload struct {
+    root      *Root
+    CanUpload bool   `vugu:"data"`
+    Filename  string `vugu:"data"`
+
+    konf             *koanf.Koanf
+    Link             string `vugu:"data"`
+    Domain           string `vugu:"data"`
+    TTL              string `vugu:"data"`
+    OneShot          bool   `vugu:"data"`
+    PassphraseLength int    `vugu:"data"`
+}
+
+func (c *Upload) Init(ctx vugu.InitCtx) {
+    c.konf = koanf.New(".")
+    defaults := map[string]interface{}{
+		"passphrase_length": 24,
+		"storage":           "plik",
+		"clipboard":         true,
+        "plik.url":          "https://plik.root.gg",
+        "plik.ttl":          "24h",
+        "plik.one_shot":     false,
+	}
+
+    //
+
+    params := c.root.href.Query()
+    if v :=  params.Get("passphrase_length"); v != "" {
+        defaults["passphrase_length"] = v
+    }
+    if v :=  params.Get("domain"); v != "" {
+        defaults["plik.url"] = v
+    }
+    if v :=  params.Get("ttl"); v != "" {
+        defaults["plik.ttl"] = v
+    }
+    if params.Get("one_shot") != "" {
+        defaults["plik.one_shot"] = true
+    }
+
+    //
+
+	if err := c.konf.Load(confmap.Provider(defaults, "."), nil); err != nil {
+		c.root.NotifyError(false, err)
+        return
+	}
+
+    //
+
+    c.Link = c.root.href.String()
+    c.Domain = c.konf.String("plik.url")
+    c.TTL = c.konf.String("plik.ttl")
+    c.PassphraseLength = c.konf.Int("passphrase_length")
+    c.OneShot = c.konf.Bool("plik.one_shot")
+}
+
+func (c *Upload) Rendered(ctx vugu.RenderedCtx) {
+    if !ctx.First() {
+        return
+    }
+
+    if c.OneShot {
+        // Hack to ckeck the checkbox on first rendering
+        sjs.Global().Get("document").Call("getElementById", "one-shot").Set("checked", true)
+    }
+}
+
+func (c *Upload) HandleChange(e vugu.DOMEvent) {
+    switch e.PropString("target", "name") {
+    case "domain":
+        c.Domain = e.PropString("target", "value")
+    case "ttl":
+        _, err := time.ParseDuration(e.PropString("target", "value"))
+        if err != nil {
+            c.root.NotifyError(false, err)
+            // fmt.Println(err)
+            return
+        }
+        c.TTL = e.PropString("target", "value")
+    case "passphrase_length":
+        v, err := strconv.Atoi(e.PropString("target", "value"))
+        if err != nil {
+            // c.root.NotifyError(err)
+            fmt.Println(err)
+            return
+        }
+        c.PassphraseLength = v
+    case "one_shot":
+        c.OneShot = !c.OneShot
+    }
+
+    //
+
+    params := url.Values{}
+    if c.PassphraseLength != c.konf.Int("passphrase_length") {
+        params.Set("passphrase_length", strconv.Itoa(c.PassphraseLength))
+    }
+
+    if c.Domain != c.konf.String("plik.url") {
+        params.Set("domain", c.Domain)
+    }
+    if c.TTL != c.konf.String("plik.ttl") {
+        params.Set("ttl", c.TTL)
+    }
+    if c.PassphraseLength != c.konf.Int("passphrase_length") {
+        params.Set("passphrase_length", strconv.Itoa(c.PassphraseLength))
+    }
+    if c.OneShot != c.konf.Bool("plik.one_shot") {
+        params.Set("one_shot", strconv.FormatBool(c.OneShot))
+    }
+
+    link := url.URL{
+        Scheme: c.root.href.Scheme,
+        Host: c.root.href.Host,
+        RawQuery: params.Encode(),
+    }
+    c.Link = link.String()
+}
+
+func (c *Upload) FileChange() {
+    files := strings.Split(sjs.Global().Get("document").Call("getElementById", "file-to-upload").Get("value").String(), "\\")
+    c.Filename = files[len(files)-1]
+
+    c.CanUpload = true
+}
+
+func (c *Upload) Upload(_ vugu.DOMEvent) {
+    file := sjs.Global().Get("document").Call("getElementById", "file-to-upload").Get("files").Index(0)
+
+    artifact := artifact.Artifact{
+        Filename: c.Filename,
+        Header:   url.Values{},
+    }
+
+    uploader, err := NewUploader(c.konf, file)
+    if err != nil {
+        c.root.NotifyError(true, err)
+        return
+    }
+
+    go func() {
+        err = uploader.Upload(&artifact)
+        if err != nil {
+            c.root.NotifyError(true, err)
+            return
+        }
+
+        c.updateByID("password", artifact.Password)
+        c.updateByID("link", artifact.Link(c.root.host))
+    }()
+}
+
+// updateByID updates the given DOM id with the given data.
+// It's usefull from a goroutine.
+func (c *Upload) updateByID(id string, data interface{}) {
+    sjs.Global().Get("document").Call("getElementById", id).Set("innerHTML", data)
+}
+
+</script>

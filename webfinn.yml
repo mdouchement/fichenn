@@ -1,0 +1,11 @@
+addr: localhost:5000
+logger: debug
+filters:
+  # A list of proxified destinations.
+  # You can build your Golang's regexp on https://regex101.com/
+  - method: POST
+    route: ^https:\/\/plik\.root\.gg\/upload.*
+  - method: POST
+    route: ^https:\/\/plik\.root\.gg\/file\/.*
+  - method: GET
+    route: ^https:\/\/plik\.root\.gg\/file\/.*

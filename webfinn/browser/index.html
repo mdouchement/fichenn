@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Web Finn</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!-- styles -->
+        <link rel="stylesheet" href="/bulma.min.css">
+        <link rel="stylesheet" href="/bulma-tooltip.min.css">
+        <link rel="stylesheet" href="/fontawesome.min.css">
+        <link rel="stylesheet" href="/fontawesome.solid.min.css">
+        <link rel="stylesheet" href="/fontawesome.brands.min.css">
+        <link rel="stylesheet" href="/index.css">
+    </head>
+    <body>
+        <section class="section">
+            <nav class="navbar bd-nav-bar is-link is-spaced" role="navigation" aria-label="main navigation">
+                <div class="navbar-brand">
+                    <div class="navbar-item">
+                        <div class="field">
+                            <div>
+                                <a class="title has-text-white" href="">WebFinn</a>
+                            </div>
+                            <div class="subtitle has-text-grey-light" data-tooltip="End-to-end encryption form your web browser">E2EE File Sharing</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="navbar-menu">
+                    <div class="navbar-start">
+                        <a class="navbar-item" href="/">Upload</a>
+                        <a class="navbar-item" href="/download">Download</a>
+                    </div>
+
+                    <div class="navbar-end buttons">
+                        <a class="navbar-item bd-navbar-icon" href="https://github.com/mdouchement/fichenn" target="_blank">
+                            <span class="icon"><i class="fab fa-lg fa-github"></i></span>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <section class="section">
+                <div id="vugu_mount_point" class="container">
+                    <img style="position: absolute; top: 50%; left: 50%;" src="/loader.gif">
+                </div>
+            </section>
+        </section>
+
+        <!-- scripts -->
+        <script src="/StreamSaver.min.js"></script>
+        <script src="/wasm_exec.js"></script>
+        <!-- scripts -->
+        <script>
+            var wasmSupported = (typeof WebAssembly === "object");
+            if (wasmSupported) {
+                if (!WebAssembly.instantiateStreaming) { // polyfill
+                    WebAssembly.instantiateStreaming = async (resp, importObject) => {
+                        const source = await (await resp).arrayBuffer();
+                        return await WebAssembly.instantiate(source, importObject);
+                    };
+                }
+                var mainWasmReq = fetch("/webfinn.wasm").then(function(res) {
+                    if (res.ok) {
+                        const go = new Go();
+                        WebAssembly.instantiateStreaming(res, go.importObject).then((result) => {
+                            go.run(result.instance);
+                        });
+                    } else {
+                        res.text().then(function(txt) {
+                            var el = document.getElementById("vugu_mount_point");
+                            el.style = 'font-family: monospace; background: black; color: red; padding: 10px';
+                            el.innerText = txt;
+                        })
+                    }
+                })
+            } else {
+                document.getElementById("vugu_mount_point").innerHTML = 'This application requires WebAssembly support.  Please upgrade your browser.';
+            }
+        </script>
+    </body>
+</html>
