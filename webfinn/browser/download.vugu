@@ -35,7 +35,7 @@
                 </div>
                 <div class="field" vg-if='!c.NoArtifact'>
                     <label class="label">Command line</label>
-                    <textarea readonly class="textarea" rows="2" vg-content='c.CLI'></textarea>
+                    <textarea readonly class="textarea" rows="3" vg-content='c.CLI'></textarea>
                 </div>
                 <div class="field" vg-if='c.NoArtifact'>
                     <label class="label">Shareable link</label>

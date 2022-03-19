@@ -22,14 +22,13 @@ tasks:
     desc: Webfinn build
     cmds:
       - task: webfinn-dep
+      - defer: rm {{.SOURCE}}/go.mod {{.SOURCE}}/main_wasm.go {{.SOURCE}}/*_vgen.go
       - cp {{.SOURCE}}/*.html {{.DESTINATION}}/assets
       # - cp {{.SOURCE}}/*.js {{.DESTINATION}}/assets
       - cp {{.SOURCE}}/*.css {{.DESTINATION}}/assets
       #
-      # - rm {{.SOURCE}}/go.mod {{.SOURCE}}/main_wasm.go {{.SOURCE}}/*_vgen.go ; true
       - go generate {{.SOURCE}}/...
       - GOOS=js GOARCH=wasm go build -o {{.DESTINATION}}/assets/webfinn.wasm {{.SOURCE}}/*.go
-      - rm {{.SOURCE}}/go.mod {{.SOURCE}}/main_wasm.go {{.SOURCE}}/*_vgen.go ; true
       #
       - go build -ldflags "{{.LDFLAGS | splitList "\n" | join " "}}" -o {{.WORKDIR}}/bin/webfinn {{.DESTINATION}}/*.go
     vars:

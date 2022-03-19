@@ -59,7 +59,6 @@
                             <div class="control">
                                 <input type="text" class="input" @change="c.HandleChange(event)" name="passphrase_length" :value="c.PassphraseLength"></input>
                             </div>
-                            <div>You selected: <span vg-html="c.PassphraseLength"></span></div>
                         </div>
                         <div class="field">
                             <label class="checkbox">
@@ -69,14 +68,9 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
-                                <button class="button is-info" @click="c.HandleChange(event)">Update URL</button>
+                                <a class="button is-info" @click="c.HandleChange(event)" name="update">Update URL</a>
                             </div>
                         </div>
-                        <!--<div class="field">
-                            <div class="buttons is-centered">
-                                <a :href="c.Link" rel="stylesheet" vg-content="c.Link"></a>
-                            </div>
-                        </div>-->
                     </form>
                 </div>
             </div>
@@ -108,11 +102,11 @@ type Upload struct {
     Filename  string `vugu:"data"`
 
     konf             *koanf.Koanf
-    Link             string `vugu:"data"`
     Domain           string `vugu:"data"`
     TTL              string `vugu:"data"`
     OneShot          bool   `vugu:"data"`
     PassphraseLength int    `vugu:"data"`
+    params           url.Values
 }
 
 func (c *Upload) Init(ctx vugu.InitCtx) {
@@ -128,17 +122,17 @@ func (c *Upload) Init(ctx vugu.InitCtx) {
 
     //
 
-    params := c.root.href.Query()
-    if v :=  params.Get("passphrase_length"); v != "" {
+    c.params = c.root.href.Query()
+    if v := c.params.Get("passphrase_length"); v != "" {
         defaults["passphrase_length"] = v
     }
-    if v :=  params.Get("domain"); v != "" {
+    if v := c.params.Get("domain"); v != "" {
         defaults["plik.url"] = v
     }
-    if v :=  params.Get("ttl"); v != "" {
+    if v := c.params.Get("ttl"); v != "" {
         defaults["plik.ttl"] = v
     }
-    if params.Get("one_shot") != "" {
+    if c.params.Get("one_shot") != "" {
         defaults["plik.one_shot"] = true
     }
 
@@ -151,7 +145,6 @@ func (c *Upload) Init(ctx vugu.InitCtx) {
 
     //
 
-    c.Link = c.root.href.String()
     c.Domain = c.konf.String("plik.url")
     c.TTL = c.konf.String("plik.ttl")
     c.PassphraseLength = c.konf.Int("passphrase_length")
@@ -173,52 +166,53 @@ func (c *Upload) HandleChange(e vugu.DOMEvent) {
     switch e.PropString("target", "name") {
     case "domain":
         c.Domain = e.PropString("target", "value")
+        c.params.Set("domain", c.Domain)
+        //
+        //
     case "ttl":
         _, err := time.ParseDuration(e.PropString("target", "value"))
         if err != nil {
             c.root.NotifyError(false, err)
-            // fmt.Println(err)
             return
         }
+
         c.TTL = e.PropString("target", "value")
+        c.params.Set("ttl", c.TTL)
+        //
+        //
     case "passphrase_length":
         v, err := strconv.Atoi(e.PropString("target", "value"))
         if err != nil {
-            // c.root.NotifyError(err)
-            fmt.Println(err)
+            c.root.NotifyError(false, err)
             return
         }
+
         c.PassphraseLength = v
+        c.params.Set("passphrase_length", strconv.Itoa(c.PassphraseLength))
+        //
+        //
     case "one_shot":
         c.OneShot = !c.OneShot
-    }
+        c.params.Set("one_shot", strconv.FormatBool(c.OneShot))
+        //
+        //
+    case "update":
+        if c.Domain == c.konf.String("plik.url") {
+            c.params.Del("domain")
+        }
+        if c.TTL == c.konf.String("plik.ttl") {
+            c.params.Del("ttl")
+        }
+        if c.PassphraseLength == c.konf.Int("passphrase_length") {
+            fmt.Println("DEL plen")
+            c.params.Del("passphrase_length")
+        }
+        if c.OneShot == c.konf.Bool("plik.one_shot") {
+            c.params.Del("one_shot")
+        }
 
-    //
-
-    params := url.Values{}
-    if c.PassphraseLength != c.konf.Int("passphrase_length") {
-        params.Set("passphrase_length", strconv.Itoa(c.PassphraseLength))
+        c.root.MustNavigate("/", c.params, vgrouter.NavReplace)
     }
-
-    if c.Domain != c.konf.String("plik.url") {
-        params.Set("domain", c.Domain)
-    }
-    if c.TTL != c.konf.String("plik.ttl") {
-        params.Set("ttl", c.TTL)
-    }
-    if c.PassphraseLength != c.konf.Int("passphrase_length") {
-        params.Set("passphrase_length", strconv.Itoa(c.PassphraseLength))
-    }
-    if c.OneShot != c.konf.Bool("plik.one_shot") {
-        params.Set("one_shot", strconv.FormatBool(c.OneShot))
-    }
-
-    link := url.URL{
-        Scheme: c.root.href.Scheme,
-        Host: c.root.href.Host,
-        RawQuery: params.Encode(),
-    }
-    c.Link = link.String()
 }
 
 func (c *Upload) FileChange() {

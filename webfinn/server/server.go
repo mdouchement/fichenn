@@ -84,6 +84,7 @@ func (a *Application) download(w http.ResponseWriter, r *http.Request) {
 func (a *Application) proxy(w http.ResponseWriter, r *http.Request) {
 	requestID := uuid.Must(uuid.NewV4()).String()
 	l := a.log.WithPrefix("[proxy]").WithField("request_id", requestID)
+	l.Info("New request")
 
 	// {
 	// 	payload, err := httputil.DumpRequest(r, false)
