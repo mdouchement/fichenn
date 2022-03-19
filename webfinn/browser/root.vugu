@@ -1,0 +1,94 @@
+<div>
+    <main role="main" class="container text-center">
+        <div>
+            <div class="is-hidden">
+                <button id="refresh" @click="c.Refresh(event)"></button>
+            </div>
+            <!-- ERRORS -->
+            <div class="block">
+                <article class="message is-danger" vg-if='c.Error != ""'>
+                    <div class="message-header">
+                        <p>Error</p>
+                        <button class="delete" @click="c.ClearError(event)"></button>
+                    </div>
+                    <div class="message-body" vg-content="c.Error"></div>
+                </article>
+            </div>
+
+            <!-- RENDER THE BODY -->
+            <vg-comp expr="c.Body"/>
+        </div>
+    </main>
+</div>
+
+
+<script type="application/x-go">
+
+import (
+    "fmt"
+    "net/http"
+    "net/url"
+    "strings"
+    sjs "syscall/js"
+
+    "github.com/mdouchement/fichenn/artifact"
+    "github.com/pkg/errors"
+    "github.com/vugu/vgrouter"
+)
+
+type Root struct {
+    vgrouter.NavigatorRef
+    Body vugu.Builder
+
+    href     url.URL
+    host     url.URL
+    Error    string `vugu:"data"`
+}
+
+func (c *Root) Init(ctx vugu.InitCtx) {
+    sjs.Global().Get("streamSaver").Set("mitm", "/mitm.html?version=2.0.0")
+
+    //
+
+    href, err := url.Parse(sjs.Global().Get("location").Get("href").String())
+    if err != nil {
+		err = errors.Wrap(err, "could parse location.href")
+		c.NotifyError(false, err)
+        return
+	}
+    c.href = *href
+    c.host = url.URL{
+        Scheme: href.Scheme,
+        Host: href.Host,
+    }
+
+    //
+
+    http.DefaultClient.Transport, err = NewTransport(c.host)
+	if err != nil {
+		err = errors.Wrap(err, "could define transport")
+		c.NotifyError(false, err)
+	}
+}
+
+func (c *Root) NotifyError(async bool, err error) {
+    if err != nil {
+        c.Error = err.Error()
+        if async {
+            c.Refresh(nil)
+        }
+    }
+}
+
+func (c *Root) ClearError(_ vugu.DOMEvent) {
+    c.Error = ""
+}
+
+// Refresh forces the DOM to refresh and display a new value, especially from a goroutine.
+func (c *Root) Refresh(e vugu.DOMEvent) {
+    if e == nil {
+        sjs.Global().Get("document").Call("getElementById", "refresh").Call("click")
+    }
+}
+
+</script>

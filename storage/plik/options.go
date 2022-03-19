@@ -1,6 +1,7 @@
 package plik
 
 import (
+	"net/url"
 	"time"
 )
 
@@ -34,6 +35,7 @@ type (
 
 		authorization string
 		useragent     string
+		header        url.Values
 	}
 )
 
@@ -70,5 +72,12 @@ func BasicAuth(login, password string) Option {
 func UserAgent(name string) Option {
 	return func(opts *Options) {
 		opts.useragent = name
+	}
+}
+
+// Header sets the headers for each requests.
+func Header(header url.Values) Option {
+	return func(opts *Options) {
+		opts.header = header
 	}
 }

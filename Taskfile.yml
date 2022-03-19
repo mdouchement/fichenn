@@ -4,7 +4,7 @@
 version: '3'
 
 vars:
-  VERSION: 0.3.3
+  VERSION: 0.4.0
   REVISION: { sh: git rev-parse HEAD }
   WORKDIR: { sh: pwd }
 
@@ -12,10 +12,40 @@ env:
   CGO_ENABLED: 0
 
 tasks:
+  webfinn-serve:
+    desc: Webfinn serve
+    cmds:
+      - task: webfinn-build
+      - "{{.WORKDIR}}/bin/webfinn -c webfinn.yml"
+
+  webfinn-build:
+    desc: Webfinn build
+    cmds:
+      - task: webfinn-dep
+      - defer: rm {{.SOURCE}}/go.mod {{.SOURCE}}/main_wasm.go {{.SOURCE}}/*_vgen.go
+      - cp {{.SOURCE}}/*.html {{.DESTINATION}}/assets
+      # - cp {{.SOURCE}}/*.js {{.DESTINATION}}/assets
+      - cp {{.SOURCE}}/*.css {{.DESTINATION}}/assets
+      #
+      - go generate {{.SOURCE}}/...
+      - GOOS=js GOARCH=wasm go build -o {{.DESTINATION}}/assets/webfinn.wasm {{.SOURCE}}/*.go
+      #
+      - go build -ldflags "{{.LDFLAGS | splitList "\n" | join " "}}" -o {{.WORKDIR}}/bin/webfinn {{.DESTINATION}}/*.go
+    vars:
+      SOURCE: "{{.WORKDIR}}/webfinn/browser"
+      DESTINATION: "{{.WORKDIR}}/cmd/webfinn"
+      LDFLAGS: |
+        -s
+        -w
+        -X main.version={{.VERSION}}
+        -X main.revision={{ printf "%.7s" .REVISION }}
+        -X main.date={{now | date "2006-01-02~15:04:05"}}
+
   clean:
     desc: Clean project
     cmds:
       - rm -rf {{.WORKDIR}}/dist
+      - rm -rf {{.WORKDIR}}/cmd/webfinn/assets
 
   build-all:
     desc: Build all binaries
@@ -75,3 +105,93 @@ tasks:
     dir: "{{.WORKDIR}}/dist"
     cmds:
       - checksum --algs="sha256" --append-to checksum.txt {{.BINARY_NAME}}
+
+  download:
+    cmds:
+      - curl -L {{.URL}} -o {{.DESTINATION}}
+      - checksum --verify={{.SUM}} {{.DESTINATION}}
+
+#
+#
+#
+#
+
+  webfinn-dep:
+    desc: Webfinn install dependencies
+    vars:
+      DESTINATION: "{{.WORKDIR}}/cmd/webfinn/assets"
+    status:
+      - test -f "{{.DESTINATION}}/wasm_exec.js"
+    cmds:
+      - mkdir -p {{.DESTINATION}}
+      - cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" {{.DESTINATION}}/
+      #
+      #
+      - task: download
+        vars:
+          URL: https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css
+          DESTINATION: "{{.DESTINATION}}/bulma.min.css"
+          SUM: 05e36527679feda7316670f6578c90eed5408e7776c95b3fd3eef5086bf3e217
+
+      - task: download
+        vars:
+          URL: https://cdnjs.cloudflare.com/ajax/libs/bulma-tooltip/1.2.0/bulma-tooltip.min.css
+          DESTINATION: "{{.DESTINATION}}/bulma-tooltip.min.css"
+          SUM: b7e9505702d163cd0d77356d0c68329c4ebe2ab0f7bf34f65005ecf8d9b88054
+
+      - task: download
+        vars:
+          URL: https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif
+          DESTINATION: "{{.DESTINATION}}/loader.gif"
+          SUM: b6ba7f3b5921f2f47d82b8b0cb9d3af52b7080f4ad98d708344394f95729fd99
+      #
+      #
+      - mkdir -p {{.DESTINATION}}/webfonts
+      - task: download
+        vars:
+          URL: https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/fontawesome.min.css
+          DESTINATION: "{{.DESTINATION}}/fontawesome.min.css"
+          SUM: 18cb4c07fce64863637b120339790228a755857787935aaa9d53fff9f90592a3
+
+      - task: download
+        vars:
+          URL: https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/solid.min.css
+          DESTINATION: "{{.DESTINATION}}/fontawesome.solid.min.css"
+          SUM: a7331ae57f7c3eedff703100ac0a4251b61135262d6434387452bb8b869212a6
+
+      - task: download
+        vars:
+          URL: https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/webfonts/fa-solid-900.woff2
+          DESTINATION: "{{.DESTINATION}}/webfonts/fa-solid-900.woff2"
+          SUM: 1f168327582b19fbb8e91e95469d3007e5115925403696d4febbe02fa494a36c
+
+      - task: download
+        vars:
+          URL: https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/brands.min.css
+          DESTINATION: "{{.DESTINATION}}/fontawesome.brands.min.css"
+          SUM: 590a2c6d626f6bbb4ef3fec385777feae1d60ddd1bacb38531be8b0bdcc3e167
+
+      - task: download
+        vars:
+          URL: https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/webfonts/fa-brands-400.woff2
+          DESTINATION: "{{.DESTINATION}}/webfonts/fa-brands-400.woff2"
+          SUM: 7bbfc70943667ebd52822c1b30f3ba448a683a7894ba6a6c2dac10502661bf2f
+      #
+      #
+      - task: download
+        vars:
+          URL: https://cdn.jsdelivr.net/npm/streamsaver@2.0.6/StreamSaver.min.js
+          DESTINATION: "{{.DESTINATION}}/StreamSaver.min.js"
+          SUM: 94f2c0f5579ce1f898a05baa443933fee7709043909e12f903c940c4cbcc88b2
+
+      - task: download
+        vars:
+          URL: https://cdn.jsdelivr.net/npm/streamsaver@2.0.6/sw.js
+          DESTINATION: "{{.DESTINATION}}/sw.js"
+          SUM: 1355af4866c115ea30556ece8600d9285fa725b4892cf7e445e4253b9f409c49
+
+      - task: download
+        vars:
+          URL: https://cdn.jsdelivr.net/npm/streamsaver@2.0.6/mitm.html
+          DESTINATION: "{{.DESTINATION}}/mitm.html"
+          SUM: 3027fce71dc330f061c1eedbfdf690b7488879e4b05982f9c0ea987d6c151f75

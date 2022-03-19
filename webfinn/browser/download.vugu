@@ -1,0 +1,125 @@
+<div>
+    <main role="download" class="download">
+        <h3 class="title is-3">Download</h3>
+        <div class="section">
+            <div class="tile is-vertical notification" vg-if='c.NoArtifact'>
+                <div class="field">
+                    <label class="label">Command line</label>
+                    <div class="control">
+                        <vgform:Textarea class="textarea" rows="2" :Value='vgform.StringPtr{&c.CLI}'></vgform:Textarea>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="buttons is-centered">
+                        <button class="button is-info" :disabled='c.CLI == ""' @click="c.Parse(event)">
+                            <span class="icon">
+                                <i class="fas fa-blender"></i>
+                            </span>
+                            <span>Parse</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tile is-vertical notification">
+                <div class="field">
+                    <label class="label">Password</label>
+                    <span class="tag is-light" vg-content='c.Artifact.Password'></span>
+                </div>
+                <div class="field">
+                    <label class="label">Filename</label>
+                    <span class="tag is-light" vg-content='c.Artifact.Filename'></span>
+                </div>
+                <div class="field">
+                    <label class="label">URL</label>
+                    <span class="tag is-light" vg-content='c.Artifact.URL'></span>
+                </div>
+                <div class="field" vg-if='!c.NoArtifact'>
+                    <label class="label">Command line</label>
+                    <textarea readonly class="textarea" rows="3" vg-content='c.CLI'></textarea>
+                </div>
+                <div class="field" vg-if='c.NoArtifact'>
+                    <label class="label">Shareable link</label>
+                    <textarea readonly class="textarea" rows="2" vg-content='c.ShareableLink'></textarea>
+                </div>
+                <div class="field">
+                    <div class="buttons is-centered">
+                        <button class="button is-info" :disabled='c.Artifact.URL == ""' @click="c.Download(event)">
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script type="application/x-go">
+
+import (
+    "fmt"
+    "net/http"
+    "net/url"
+    "strings"
+    sjs "syscall/js"
+
+    "github.com/vugu/vgrouter"
+	"github.com/vugu/vugu"
+    "github.com/mdouchement/fichenn/artifact"
+)
+
+type Download struct {
+    root          *Root
+    RouteMatch    *vgrouter.RouteMatch
+    NoArtifact    bool                 `vugu:"data"`
+    CLI           string               `vugu:"data"`
+    ShareableLink string               `vugu:"data"`
+    Artifact      artifact.Artifact    `vugu:"data"`
+}
+
+func (c *Download) Init(ctx vugu.InitCtx) {
+    if c.NoArtifact {
+        return
+    }
+
+    artifact, err := artifact.ParseFromLink(c.RouteMatch.Params.Get("artifact"))
+    if err != nil {
+        c.root.NotifyError(false, err)
+        return
+    }
+
+    c.Refresh(artifact)
+}
+
+func (c *Download) Download(e vugu.DOMEvent) {
+    downloader := NewDownloader(c.Artifact)
+    err := downloader.Download()
+    if err != nil {
+        c.root.NotifyError(false, err)
+        return
+    }
+}
+
+func (c *Download) Parse(e vugu.DOMEvent) {
+    if c.CLI == "" {
+        return
+    }
+
+    artifact, err := artifact.ParseFromCLI(c.CLI)
+    if err != nil {
+        c.root.NotifyError(false, err)
+        return
+    }
+
+    c.Refresh(artifact)
+}
+
+func (c *Download) Refresh(artifact artifact.Artifact) {
+    c.Artifact = artifact
+    c.ShareableLink = c.Artifact.Link(c.root.host)
+    c.CLI = artifact.CLI()
+}
+
+</script>

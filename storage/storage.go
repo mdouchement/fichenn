@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/knadh/koanf"
+	"github.com/mdouchement/fichenn/artifact"
 	"github.com/pkg/errors"
 )
 
@@ -12,8 +13,7 @@ const UserAgent = "fichenn/1.0"
 
 // A Storage is an interface used for uploading secured data.
 type Storage interface {
-	Upload(name string, r io.Reader) error
-	CommandArtefact() string
+	Upload(a *artifact.Artifact, r io.Reader) error
 }
 
 // NewFrom returns a new storage based on the given configuration.

@@ -82,6 +82,11 @@ func (c *client) bucket(params *Options) (*Options, error) {
 		return nil, errors.Wrap(err, "could not build request")
 	}
 	req.Close = true
+	for k, vs := range params.header {
+		for _, v := range vs {
+			req.Header.Add(k, v)
+		}
+	}
 	if params.useragent != "" {
 		req.Header.Add("User-Agent", params.useragent)
 	}
@@ -98,7 +103,10 @@ func (c *client) bucket(params *Options) (*Options, error) {
 
 	if res.StatusCode >= 400 {
 		body, err = ioutil.ReadAll(res.Body)
-		return nil, errors.Wrapf(err, "[%d] %s", res.StatusCode, body)
+		if err != nil {
+			return nil, errors.Wrapf(err, "%d", res.StatusCode)
+		}
+		return nil, errors.Errorf("[%d] %s", res.StatusCode, body)
 	}
 
 	params.authorization = res.Header.Get("Authorization") // Get BasicAuth authorization for the upload.
@@ -124,6 +132,11 @@ func (c *client) multipart(name string, r io.Reader, params *Options) (string, s
 		return "", "", errors.Wrap(err, "could not build request")
 	}
 	req.Close = true
+	for k, vs := range params.header {
+		for _, v := range vs {
+			req.Header.Add(k, v)
+		}
+	}
 	if params.useragent != "" {
 		req.Header.Add("User-Agent", params.useragent)
 	}
@@ -144,7 +157,10 @@ func (c *client) multipart(name string, r io.Reader, params *Options) (string, s
 
 	if res.StatusCode >= 400 {
 		body, err := ioutil.ReadAll(res.Body)
-		return "", "", errors.Wrapf(err, "[%d] %s", res.StatusCode, body)
+		if err != nil {
+			return "", "", errors.Wrapf(err, "%d", res.StatusCode)
+		}
+		return "", "", errors.Errorf("[%d] %s", res.StatusCode, body)
 	}
 
 	var file struct {
