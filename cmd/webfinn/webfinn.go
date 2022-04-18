@@ -13,10 +13,10 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/mdouchement/fichenn/webfinn/server"
 	"github.com/mdouchement/logger"
-	"github.com/muesli/coral"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -48,12 +48,12 @@ func main() {
 	})
 	log := logger.WrapLogrus(l)
 
-	c := &coral.Command{
+	c := &cobra.Command{
 		Use:     "webfinn",
 		Short:   "Fichenn secured uploads from web browser",
 		Version: fmt.Sprintf("%s - build %.7s @ %s - %s", version, revision, date, runtime.Version()),
-		Args:    coral.NoArgs,
-		RunE: func(c *coral.Command, _ []string) error {
+		Args:    cobra.NoArgs,
+		RunE: func(c *cobra.Command, _ []string) error {
 			log = log.WithField("version", c.Version)
 
 			var config configuration
