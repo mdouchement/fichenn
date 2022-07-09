@@ -5,8 +5,8 @@ import (
 )
 
 type Rule struct {
-	Method  string `json:"method"`
-	Route   string `json:"route"`
+	Method  string `yaml:"method"`
+	Route   string `yaml:"route"`
 	matcher *regexp.Regexp
 }
 
