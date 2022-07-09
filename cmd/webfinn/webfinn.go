@@ -10,13 +10,13 @@ import (
 	"regexp"
 	"runtime"
 
-	"github.com/ghodss/yaml"
 	"github.com/mdouchement/fichenn/webfinn/server"
 	"github.com/mdouchement/logger"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -26,9 +26,9 @@ var (
 )
 
 type configuration struct {
-	Address string         `json:"addr"`
-	Logger  string         `json:"logger"`
-	Filters []*server.Rule `json:"filters"`
+	Address string         `yaml:"addr"`
+	Logger  string         `yaml:"logger"`
+	Filters []*server.Rule `yaml:"filters"`
 }
 
 //go:embed assets/*
