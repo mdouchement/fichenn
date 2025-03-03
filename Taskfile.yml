@@ -4,7 +4,7 @@
 version: '3'
 
 vars:
-  VERSION: 0.4.5
+  VERSION: 0.4.6
   REVISION: { sh: git rev-parse HEAD }
   WORKDIR: { sh: pwd }
 
@@ -79,6 +79,15 @@ tasks:
       - task: checksum
         vars:
           BINARY_NAME: finn-darwin-amd64
+
+      - task: build
+        vars:
+          BINARY_NAME: finn-darwin-arm64
+          TARGET_DIST: GOOS=darwin GOARCH=arm64
+
+      - task: checksum
+        vars:
+          BINARY_NAME: finn-darwin-arm64
 
       - task: build
         vars:
