@@ -66,7 +66,7 @@ func (u *Uploader) Upload(artifact *artifact.Artifact) error {
 
 	var wg sync.WaitGroup
 
-	onload := sjs.FuncOf(func(this sjs.Value, args []sjs.Value) interface{} {
+	onload := sjs.FuncOf(func(this sjs.Value, args []sjs.Value) any {
 		defer wg.Done()
 
 		if err := args[0].Get("target").Get("error"); !err.IsNull() {
