@@ -2,10 +2,10 @@ name: Build docker image
 on:
   # schedule:
   #   - cron: '0 0 */3 * *' # @at 0h0m0s every 3 days
-  # release:
-  #   types: [created]
-  # push:
-  #   branches: [master]
+  release:
+    types: [created]
+  push:
+    branches: [master]
 jobs:
   docker:
     runs-on: ubuntu-latest
