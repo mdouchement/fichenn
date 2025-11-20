@@ -28,7 +28,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const runcom = ".fichennrc"
+const (
+	runcom    = ".fichennrc"
+	runcomEnv = "FICHENN_RC"
+)
 
 var (
 	version  = "dev"
@@ -118,7 +121,7 @@ func (c *controller) download(url string) error {
 			return errors.Wrap(err, "could not get output file info")
 		}
 
-		os.Chmod(c.output, stat.Mode()|os.FileMode(0111)) // chmod +x <output>
+		os.Chmod(c.output, stat.Mode()|os.FileMode(0o111)) // chmod +x <output>
 	}
 
 	return nil
@@ -192,11 +195,11 @@ func (c *controller) config() (*koanf.Koanf, error) {
 	// Configuration
 	konf := koanf.New(".")
 
-	defaults := map[string]interface{}{
+	defaults := map[string]any{
 		"passphrase_length": 24,
 		"storage":           "plik",
 		"clipboard":         true,
-		"plik": map[string]interface{}{
+		"plik": map[string]any{
 			"url":      "https://plik.root.gg",
 			"ttl":      "24h",
 			"one_shot": false,
@@ -221,6 +224,12 @@ func (c *controller) config() (*koanf.Koanf, error) {
 }
 
 func lookup() (string, error) {
+	if path := os.Getenv(runcomEnv); path != "" {
+		return path, nil
+	}
+
+	//
+
 	workdir, err := os.Getwd()
 	if err != nil {
 		return "", errors.Wrap(err, "current directory:")
