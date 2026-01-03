@@ -4,13 +4,12 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
 	"runtime"
 
-	"github.com/mdouchement/fichenn/webfinn/server"
+	"github.com/mdouchement/fichenn/experimental/webfinn/server"
 	"github.com/mdouchement/logger"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
@@ -61,7 +60,7 @@ func main() {
 			{
 
 				log.Infof("Reading configuration from %s", cfg)
-				payload, err := ioutil.ReadFile(cfg)
+				payload, err := os.ReadFile(cfg)
 				if err != nil {
 					if err != nil {
 						return errors.Wrapf(err, "could not read configuration file %s", cfg)
